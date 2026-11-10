@@ -1,0 +1,24 @@
+{
+  "name": "kabi-superadmin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite --host --port 3004",
+    "dev": "vite --host --port 3004",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.30.6"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.65",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react-swc": "^3.10.2",
+    "vite": "^5.2.11"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "Kabi Super Admin",
+  "short_name": "Kabi Super",
+  "icons": [
+    {
+      "src": "/images/kabi-logo.png",
+      "sizes": "500x500",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#F6F1E8",
+  "background_color": "#F6F1E8",
+  "display": "standalone"
+}

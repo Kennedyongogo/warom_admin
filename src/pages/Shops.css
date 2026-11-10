@@ -1,0 +1,256 @@
+/* ---------- Shop cards ---------- */
+
+.sgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+  gap: 14px;
+  padding: 16px 18px 18px;
+  transition: opacity 200ms ease;
+}
+
+.directory.is-refreshing .sgrid {
+  opacity: 0.55;
+}
+
+.scard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(228, 220, 208, 0.9);
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 16px 30px -28px rgba(60, 40, 20, 0.6);
+  animation: row-in 360ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(min(var(--i, 0), 12) * 30ms);
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+
+.scard:hover {
+  border-color: rgba(226, 61, 18, 0.25);
+  box-shadow: 0 22px 38px -26px rgba(60, 40, 20, 0.65);
+  transform: translateY(-2px);
+}
+
+.scard__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.scard__head .status {
+  flex: none;
+  align-self: flex-start;
+}
+
+.scard__who {
+  display: grid;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scard__name {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.scard__since {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.scard__facts {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(228, 220, 208, 0.7);
+  list-style: none;
+}
+
+.scard__facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  min-width: 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+  line-height: 1.35;
+}
+
+.scard__facts svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+
+.scard__facts a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.scard__facts a:hover {
+  color: var(--ember-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.scard__address {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.scard__view {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  margin-top: auto;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.scard__view svg {
+  transition: transform 160ms ease;
+}
+
+.scard__view:hover {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.scard__view:hover svg {
+  transform: translateX(3px);
+}
+
+.scard__view:active {
+  transform: scale(0.98);
+}
+
+.scard__view:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+
+.scard--skeleton {
+  gap: 12px;
+  animation: none;
+}
+
+.scard__skeleton-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+}
+
+/* ---------- Shop details page ---------- */
+
+.shop-details {
+  display: grid;
+  gap: 18px;
+}
+
+.shop-details__head {
+  display: grid;
+  gap: 6px;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.crumbs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+.crumbs a:hover {
+  border-color: var(--ink);
+}
+
+.crumbs a:focus-visible {
+  outline: 2px solid var(--ember);
+  outline-offset: 2px;
+}
+
+.crumbs [aria-current] {
+  overflow: hidden;
+  max-width: 50vw;
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shop-details__skeleton {
+  display: grid;
+  gap: 16px;
+}
+
+.shop-details__skeleton .sp-card {
+  display: grid;
+  gap: 10px;
+}
+
+.shop-details__skeleton-logo {
+  width: clamp(76px, 12vw, 104px);
+  height: clamp(76px, 12vw, 104px);
+  margin-top: calc(clamp(76px, 12vw, 104px) / -2);
+  border: 4px solid var(--card);
+  border-radius: 26px;
+}
+
+@media (max-width: 480px) {
+  .sgrid {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .scard {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scard {
+    animation: none;
+  }
+}
