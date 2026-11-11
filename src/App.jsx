@@ -33,24 +33,21 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/login"
-          element={session ? <Navigate to="/" replace /> : <Login onLogin={handleLogin} />}
-        />
-        <Route
-          element={
-            session ? (
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        {session ? (
+          <Route
+            element={
               <AppShell session={session} onSignOut={handleSignOut} onUserUpdate={handleUserUpdate} />
-            ) : (
-              <Navigate to="/login" replace />
-            )
-          }
-        >
-          <Route index element={<Home />} />
-          <Route path="users" element={<Users />} />
-          <Route path="inquiries" element={<Inquiries />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
+            }
+          >
+            <Route index element={<Home />} />
+            <Route path="users" element={<Users />} />
+            <Route path="inquiries" element={<Inquiries />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        ) : (
+          <Route index element={<Login onLogin={handleLogin} />} />
+        )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
