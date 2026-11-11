@@ -1,21 +1,25 @@
 :root {
-  --ink: #1c1916;
-  --ink-soft: #3f3a34;
-  --muted: #8a8175;
-  --paper: #f6f1e8;
-  --paper-deep: #e9e2d6;
-  --card: #fffcf8;
-  --line: #e4dcd0;
-  --ember: #e23d12;
-  --ember-deep: #b22e0c;
-  --ember-wash: #fce4da;
+  --ink: #0b1b2b;
+  --ink-soft: #16324a;
+  --muted: #5c6b78;
+  --paper: #f4f7fa;
+  --paper-deep: #e2eaf1;
+  --card: #ffffff;
+  --line: #d5e0ea;
+  --ember: #ff6b4a;
+  --ember-deep: #e24f2f;
+  --ember-wash: #ffe6df;
+  --coral: #ff6b4a;
+  --coral-deep: #e24f2f;
+  --coral-wash: #ffe6df;
+  --amber: #f5a524;
   --good: #1b7a4a;
   --good-wash: #e3f5ea;
   --danger: #d7263d;
   --danger-wash: #fde8ea;
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Syne", "Montserrat", system-ui, sans-serif;
+  --font-body: "Figtree", "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   font-family: var(--font-body);
   color: var(--ink);

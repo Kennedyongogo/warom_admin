@@ -1,6 +1,6 @@
 {
-  "name": "kabi-superadmin",
-  "version": "0.1.0",
+  "name": "warom-admin",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,10 +10,10 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.6"
+    "react-router-dom": "^6.30.6",
+    "sweetalert2": "^11.26.25"
   },
   "devDependencies": {
     "@types/react": "^18.2.65",

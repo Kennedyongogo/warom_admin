@@ -1,8 +1,16 @@
 import { useRef, useState } from "react";
 import { api } from "../auth.js";
 import Modal, { Field } from "../components/Modal.jsx";
+import { ROLE_LABELS } from "../utils/format.js";
+import { showError, showSuccess } from "../utils/swal.js";
 
-const EMPTY = { full_name: "", email: "", phone: "", password: "" };
+const ADMIN_ROLES = [
+  { id: "superadmin", label: "Superadmin" },
+  { id: "moderator", label: "Moderator" },
+  { id: "finance", label: "Finance" },
+  { id: "support", label: "Support" },
+];
+
 const PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
 
 function generatePassword(length = 10) {
@@ -12,24 +20,40 @@ function generatePassword(length = 10) {
 
 function validate(values) {
   const errors = {};
-  if (!values.full_name.trim()) errors.full_name = "Enter the owner's full name.";
+  if (!values.name.trim()) errors.name = "Enter a full name.";
   if (!values.email.trim()) errors.email = "Enter an email address.";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) errors.email = "Enter a valid email address.";
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+    errors.email = "Enter a valid email address.";
+  }
   const digits = values.phone.replace(/\D/g, "");
   if (!values.phone.trim()) errors.phone = "Enter a phone number.";
   else if (digits.length < 9 || digits.length > 15) errors.phone = "Enter a valid phone number.";
+  if (!values.role) errors.role = "Choose a role.";
   if (!values.password) errors.password = "Set a password.";
   else if (values.password.length < 6) errors.password = "Use at least 6 characters.";
   return errors;
 }
 
-export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
+export default function CreateAdminDialog({
+  token,
+  defaultRole = "moderator",
+  lockRole = false,
+  onClose,
+  onCreated,
+}) {
   const firstFieldRef = useRef(null);
-  const [values, setValues] = useState(EMPTY);
+  const selectedRole = ADMIN_ROLES.some((role) => role.id === defaultRole) ? defaultRole : "moderator";
+  const roleLabel = ROLE_LABELS[selectedRole] || selectedRole;
+  const [values, setValues] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: selectedRole,
+    password: generatePassword(),
+  });
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [serverError, setServerError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -38,7 +62,6 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
     const next = { ...values, [name]: value };
     setValues(next);
     if (submitted) setErrors(validate(next));
-    if (serverError) setServerError("");
   };
 
   const onSubmit = async (event) => {
@@ -49,22 +72,26 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
     if (Object.keys(found).length) return;
 
     setSubmitting(true);
-    setServerError("");
     try {
-      const user = await api("/api/users/shop-owners", {
+      const admin = await api("/api/admin/admins", {
         token,
         method: "POST",
         body: {
-          full_name: values.full_name.trim(),
-          email: values.email.trim(),
+          name: values.name.trim(),
+          email: values.email.trim().toLowerCase(),
           phone: values.phone.trim(),
+          role: lockRole ? selectedRole : values.role,
           password: values.password,
         },
       });
-      setCreated({ user, password: values.password });
-      onCreated(user);
+      setCreated({ admin, password: values.password });
+      onCreated?.(admin);
+      await showSuccess(
+        `${roleLabel} created`,
+        `${admin.full_name || admin.name} was added as ${ROLE_LABELS[admin.role] || admin.role}.`
+      );
     } catch (error) {
-      setServerError(error.message);
+      await showError("Couldn't create admin", error.message || "Please try again.");
       if (error.status === 409) setErrors((prev) => ({ ...prev, email: "This email is already in use." }));
     } finally {
       setSubmitting(false);
@@ -73,9 +100,10 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
 
   const copyDetails = async () => {
     const text = [
-      "Your Kabi shop owner account",
-      `Name: ${created.user.full_name}`,
-      `Email: ${created.user.email}`,
+      "Your WAROM admin account",
+      `Name: ${created.admin.full_name || created.admin.name}`,
+      `Email: ${created.admin.email}`,
+      `Role: ${ROLE_LABELS[created.admin.role] || created.admin.role}`,
       `Password: ${created.password}`,
       "Please change your password after your first sign in.",
     ].join("\n");
@@ -90,7 +118,13 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
 
   const startAnother = () => {
     setCreated(null);
-    setValues(EMPTY);
+    setValues({
+      name: "",
+      email: "",
+      phone: "",
+      role: selectedRole,
+      password: generatePassword(),
+    });
     setErrors({});
     setSubmitted(false);
     setShowPassword(false);
@@ -99,7 +133,7 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
 
   return (
     <Modal
-      labelledBy="create-owner-title"
+      labelledBy="create-admin-title"
       onClose={onClose}
       busy={submitting}
       initialFocusRef={firstFieldRef}
@@ -109,28 +143,29 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
       {(requestClose) =>
         created ? (
           <div className="modal__success">
-            <span className="modal__success-icon">
+            <span className="modal__success-icon" aria-hidden="true">
               <CheckIcon />
             </span>
-            <h2 id="create-owner-title" className="modal__title">
+            <h2 id="create-admin-title" className="modal__title">
               Account <em>created</em>
             </h2>
             <p className="modal__subtitle">
-              Share these sign-in details with {created.user.full_name.split(" ")[0]}. The password won't be shown again.
+              Share these sign-in details with {(created.admin.full_name || created.admin.name || "them").split(" ")[0]}.
+              The password won’t be shown again.
             </p>
 
             <dl className="credentials">
               <div>
                 <dt>Name</dt>
-                <dd>{created.user.full_name}</dd>
+                <dd>{created.admin.full_name || created.admin.name}</dd>
               </div>
               <div>
                 <dt>Email</dt>
-                <dd>{created.user.email}</dd>
+                <dd>{created.admin.email}</dd>
               </div>
               <div>
-                <dt>Phone</dt>
-                <dd>{created.user.phone}</dd>
+                <dt>Role</dt>
+                <dd>{ROLE_LABELS[created.admin.role] || created.admin.role}</dd>
               </div>
               <div>
                 <dt>Password</dt>
@@ -139,7 +174,6 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
             </dl>
 
             <button type="button" className={`modal__copy${copied ? " is-copied" : ""}`} onClick={copyDetails}>
-              {copied ? <CheckIcon /> : <CopyIcon />}
               {copied ? "Copied to clipboard" : "Copy sign-in details"}
             </button>
 
@@ -155,76 +189,72 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
         ) : (
           <form onSubmit={onSubmit} noValidate>
             <header className="modal__head">
-              <span className="modal__icon">
-                <StoreIcon />
-              </span>
               <div>
-                <h2 id="create-owner-title" className="modal__title">
-                  New shop <em>owner</em>
+                <h2 id="create-admin-title" className="modal__title">
+                  Create <em>{roleLabel}</em>
                 </h2>
-                <p className="modal__subtitle">Create an account a vendor can use to run their shop on Kabi.</p>
+                <p className="modal__subtitle">
+                  {lockRole
+                    ? `Add a new ${roleLabel.toLowerCase()} account for the WAROM admin console.`
+                    : "Only superadmins can add Superadmin, Moderator, Finance or Support accounts."}
+                </p>
               </div>
             </header>
 
-            {serverError && (
-              <div className="modal__alert" role="alert">
-                <AlertIcon />
-                <span>{serverError}</span>
-              </div>
-            )}
-
             <div className="modal__fields">
-              <Field id="owner-name" label="Full name" error={errors.full_name} icon={<PersonIcon />}>
+              <Field id="create-admin-name" label="Full name" error={errors.name} icon={<PersonIcon />}>
                 <input
                   ref={firstFieldRef}
                   type="text"
                   autoComplete="off"
-                  placeholder="e.g. Amina Wanjiru"
-                  value={values.full_name}
-                  onChange={(event) => setField("full_name", event.target.value)}
+                  value={values.name}
+                  onChange={(event) => setField("name", event.target.value)}
+                  placeholder="Warom Admin"
                 />
               </Field>
 
-              <Field id="owner-email" label="Email address" error={errors.email} icon={<MailIcon />}>
+              <Field id="create-admin-email" label="Email address" error={errors.email} icon={<MailIcon />}>
                 <input
                   type="email"
                   inputMode="email"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="owner@shop.co.ke"
                   value={values.email}
                   onChange={(event) => setField("email", event.target.value)}
+                  placeholder="admin@warom.app"
                 />
               </Field>
 
-              <Field id="owner-phone" label="Phone number" error={errors.phone} icon={<PhoneIcon />}>
+              <Field id="create-admin-phone" label="Phone number" error={errors.phone} icon={<PhoneIcon />}>
                 <input
                   type="tel"
                   inputMode="tel"
                   autoComplete="off"
-                  placeholder="0712 345 678"
                   value={values.phone}
                   onChange={(event) => setField("phone", event.target.value)}
+                  placeholder="0798757460"
                 />
               </Field>
 
+              <Field id="create-admin-role" label="Role" error={errors.role} icon={<ShieldIcon />}>
+                {lockRole ? (
+                  <input type="text" value={roleLabel} readOnly aria-readonly="true" />
+                ) : (
+                  <select value={values.role} onChange={(event) => setField("role", event.target.value)}>
+                    {ADMIN_ROLES.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </Field>
+
               <Field
-                id="owner-password"
+                id="create-admin-password"
                 label="Temporary password"
                 error={errors.password}
                 icon={<LockIcon />}
-                labelAction={
-                  <button
-                    type="button"
-                    className="modal__link"
-                    onClick={() => {
-                      setField("password", generatePassword());
-                      setShowPassword(true);
-                    }}
-                  >
-                    <SparkIcon /> Generate
-                  </button>
-                }
                 trailing={
                   <button
                     type="button"
@@ -235,14 +265,26 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
                     {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 }
+                labelAction={
+                  <button
+                    type="button"
+                    className="modal__link"
+                    onClick={() => {
+                      setField("password", generatePassword());
+                      setShowPassword(true);
+                    }}
+                  >
+                    Generate
+                  </button>
+                }
               >
                 <input
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
                   spellCheck={false}
-                  placeholder="At least 6 characters"
                   value={values.password}
                   onChange={(event) => setField("password", event.target.value)}
+                  placeholder="At least 6 characters"
                 />
               </Field>
             </div>
@@ -252,8 +294,7 @@ export default function CreateShopOwnerDialog({ token, onClose, onCreated }) {
                 Cancel
               </button>
               <button type="submit" className="modal__btn modal__btn--primary" disabled={submitting}>
-                {submitting ? <span className="modal__spinner" aria-hidden="true" /> : <PlusIcon />}
-                {submitting ? "Creating…" : "Create account"}
+                {submitting ? "Creating…" : `Create ${roleLabel}`}
               </button>
             </div>
           </form>
@@ -275,49 +316,6 @@ const svgProps = {
   "aria-hidden": true,
 };
 
-function CheckIcon() {
-  return (
-    <svg {...svgProps} strokeWidth={2.2}>
-      <path d="m5 12.5 4.5 4.5L19 7.5" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg {...svgProps}>
-      <rect x="8" y="8" width="12" height="12" rx="2.5" />
-      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg {...svgProps} strokeWidth={2.2}>
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg {...svgProps}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 7.5v5M12 16.5h.01" />
-    </svg>
-  );
-}
-
-function StoreIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M4 9.5 5.5 4h13L20 9.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0Z" />
-      <path d="M5 12v8h14v-8M10 20v-5h4v5" />
-    </svg>
-  );
-}
-
 function PersonIcon() {
   return (
     <svg {...svgProps}>
@@ -330,7 +328,7 @@ function PersonIcon() {
 function MailIcon() {
   return (
     <svg {...svgProps}>
-      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <rect x="3" y="5" width="18" height="14" rx="3" />
       <path d="m4 7 8 6 8-6" />
     </svg>
   );
@@ -339,7 +337,15 @@ function MailIcon() {
 function PhoneIcon() {
   return (
     <svg {...svgProps}>
-      <path d="M5 4h3.5l1.5 4-2 1.5a11 11 0 0 0 6.5 6.5l1.5-2 4 1.5V19a1.5 1.5 0 0 1-1.6 1.5A16 16 0 0 1 3.5 5.6 1.5 1.5 0 0 1 5 4Z" />
+      <path d="M7 3h3l1.5 4-2 1.5a12 12 0 0 0 5 5L16 12l4 1.5V17a2 2 0 0 1-2 2A14 14 0 0 1 5 5a2 2 0 0 1 2-2Z" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg {...svgProps}>
+      <path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" />
     </svg>
   );
 }
@@ -347,16 +353,8 @@ function PhoneIcon() {
 function LockIcon() {
   return (
     <svg {...svgProps}>
-      <rect x="4.5" y="10.5" width="15" height="10" rx="2.5" />
-      <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" />
-    </svg>
-  );
-}
-
-function SparkIcon() {
-  return (
-    <svg {...svgProps} width={14} height={14}>
-      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6" />
+      <rect x="4" y="10" width="16" height="11" rx="3" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
     </svg>
   );
 }
@@ -364,7 +362,7 @@ function SparkIcon() {
 function EyeIcon() {
   return (
     <svg {...svgProps}>
-      <path d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z" />
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   );
@@ -373,8 +371,17 @@ function EyeIcon() {
 function EyeOffIcon() {
   return (
     <svg {...svgProps}>
-      <path d="M10.6 5.1A9.7 9.7 0 0 1 12 5c6 0 9.5 7 9.5 7a17 17 0 0 1-2.6 3.5M6.6 6.6A16.6 16.6 0 0 0 2.5 12S6 19 12 19a9.4 9.4 0 0 0 5.4-1.6" />
+      <path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3 3.9M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6" />
       <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg {...svgProps} width={28} height={28} strokeWidth={2.2}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m8 12.5 2.8 2.8L16.5 9.5" />
     </svg>
   );
 }

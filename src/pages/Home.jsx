@@ -10,7 +10,7 @@ function greeting() {
 
 export default function Home() {
   const { user } = useOutletContext();
-  const firstName = user.full_name?.split(" ")[0] || "there";
+  const firstName = (user?.name || user?.full_name || "there").split(" ")[0];
   const today = new Date().toLocaleDateString(undefined, {
     weekday: "long",
     day: "numeric",
@@ -26,10 +26,10 @@ export default function Home() {
           {greeting()} · {today}
         </span>
         <h1 className="welcome__title">
-          Karibu, <em>{firstName}</em>.
+          Welcome back, <em>{firstName}</em>.
         </h1>
         <p className="welcome__text">
-          Welcome to the Kabi super admin console. Use the menu above to manage users and settings.
+          You’re in the WAROM admin console. Use the menu above to manage users, chatters, and account settings.
         </p>
       </div>
     </section>

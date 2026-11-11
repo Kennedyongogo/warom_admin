@@ -1,14 +1,14 @@
 {
-  "name": "Kabi Super Admin",
-  "short_name": "Kabi Super",
+  "name": "WAROM Admin",
+  "short_name": "WAROM Admin",
   "icons": [
     {
-      "src": "/images/kabi-logo.png",
-      "sizes": "500x500",
+      "src": "/images/warom-logo.png",
+      "sizes": "512x512",
       "type": "image/png"
     }
   ],
-  "theme_color": "#F6F1E8",
-  "background_color": "#F6F1E8",
+  "theme_color": "#0B1B2B",
+  "background_color": "#0B1B2B",
   "display": "standalone"
 }

@@ -1,40 +1,37 @@
 import { useEffect, useState } from "react";
 import { SUPER_ADMIN_ROLES, api } from "../../auth.js";
+import { showError, showInfo, showSuccess, showWarning } from "../../utils/swal.js";
 import "./Login.css";
 
-const SLIDE_MS = 6500;
+const SLIDE_MS = 7000;
 
-// `tint` is the RGB triple used for the caption gradient; `blend` multiplies the photo
-// onto `backdrop`, which turns plain white studio backgrounds into the backdrop colour.
 const SLIDES = [
   {
-    image: "/images/gas%20vendor.jpg",
-    position: "50% 22%",
-    tint: "28, 25, 22",
-    widget: "delivery",
-    eyebrow: "Gas delivery",
-    title: "Your neighbourhood, delivered.",
-    caption: "Track every gas refill from the shop counter to the customer's door.",
+    image: "/images/login-hero.jpg",
+    position: "55% 40%",
+    tint: "11, 27, 43",
+    widget: "pulse",
+    eyebrow: "Command center",
+    title: "Every connection, under one quiet light.",
+    caption: "Oversee users, chatters and live moments from a single, calm console.",
   },
   {
-    image: "/images/water.jpg",
+    image: "/images/login-ops.jpg",
     position: "50% 45%",
-    tint: "8, 33, 61",
-    blend: true,
-    backdrop: "radial-gradient(circle at 70% 30%, #e8f4fd 0%, #a9d3f5 45%, #4f97d6 100%)",
-    widget: "shops",
-    eyebrow: "Water refills",
-    title: "Clean water, right on time.",
-    caption: "Manage products, prices and riders without leaving the dashboard.",
+    tint: "8, 20, 34",
+    widget: "ledger",
+    eyebrow: "Coin economy",
+    title: "Coins that move with trust.",
+    caption: "Track spends, pending earnings and withdrawals with ledger-grade clarity.",
   },
   {
-    image: "/images/food.jpg",
-    position: "50% 58%",
-    tint: "24, 16, 10",
-    widget: "insights",
-    eyebrow: "Food & insights",
-    title: "Know what your area craves.",
-    caption: "Daily sales, busy hours and top dishes at a glance.",
+    image: "/images/login-connect.jpg",
+    position: "48% 35%",
+    tint: "10, 22, 36",
+    widget: "safety",
+    eyebrow: "Trust & safety",
+    title: "Keep chemistry safe at scale.",
+    caption: "Review reports, verify chatters and protect the rooms people love.",
   },
 ];
 
@@ -61,8 +58,6 @@ export default function Login({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [serverError, setServerError] = useState("");
-  const [showResetHint, setShowResetHint] = useState(false);
 
   const errors = validate(form);
   const visibleError = (field) => (touched[field] ? errors[field] : "");
@@ -70,145 +65,142 @@ export default function Login({ onLogin }) {
   const update = (field) => (event) => {
     const { value } = event.target;
     setForm((prev) => ({ ...prev, [field]: value }));
-    if (serverError) setServerError("");
   };
 
   const blur = (field) => () => setTouched((prev) => ({ ...prev, [field]: true }));
 
+  const handleForgotPassword = () => {
+    showInfo(
+      "Reset password",
+      "Contact the WAROM platform team to reset an admin password."
+    );
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     setTouched({ email: true, password: true });
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length) {
+      const message = [errors.email, errors.password].filter(Boolean).join(" ");
+      await showWarning("Check your details", message);
+      return;
+    }
 
     setSubmitting(true);
-    setServerError("");
     try {
-      const result = await api("/api/users/login", {
+      const result = await api("/api/admin/login", {
         method: "POST",
         body: { email: form.email.trim(), password: form.password },
       });
-      if (!SUPER_ADMIN_ROLES.includes(result.user?.role)) {
-        throw new Error("This account doesn't have super admin access.");
+      const admin = result.admin || result.user;
+      if (!admin || !SUPER_ADMIN_ROLES.includes(admin.role)) {
+        throw new Error("This account doesn't have admin access.");
       }
-      onLogin({ token: result.token, user: result.user });
+      await showSuccess("Welcome back", `Signed in as ${admin.name || admin.email}.`);
+      onLogin({ token: result.token, user: admin });
     } catch (error) {
-      setServerError(error.status === 401 ? "Invalid email or password." : error.message);
+      const message =
+        error.status === 401 ? "Invalid email or password." : error.message || "Sign in failed.";
+      await showError("Sign in failed", message);
       setSubmitting(false);
     }
   };
 
   return (
     <main className="login">
+      <div className="login__ambient" aria-hidden="true">
+        <img src="/images/login-panel.jpg" alt="" className="login__ambient-img" />
+        <div className="login__ambient-veil" />
+      </div>
+
       <section className="login__panel">
         <div className="login__inner">
-          <img
-            className="login__logo enter"
-            style={{ "--d": "0ms" }}
-            src="/images/kabi-logo.png"
-            alt="Kabi — Your Neighborhood. One App."
-          />
-
-          <div className="login__card enter" style={{ "--d": "80ms" }}>
-            <>
-                <header className="login__header">
-                  <span className="login__eyebrow">
-                    <span className="login__eyebrow-dot" aria-hidden="true" />
-                    {greeting()} · Super admin
-                  </span>
-                  <h1 className="login__title">
-                    Welcome <em>back</em>
-                  </h1>
-                  <p className="login__subtitle">Sign in to oversee every shop, rider and order on Kabi.</p>
-                </header>
-
-                {serverError && (
-                  <div className="login__alert" role="alert">
-                    <AlertIcon />
-                    <span>{serverError}</span>
-                  </div>
-                )}
-
-                <form className="login__form" onSubmit={handleSubmit} noValidate>
-                  <Field id="email" label="Email address" error={visibleError("email")} icon={<MailIcon />}>
-                    <input
-                      id="email"
-                      type="email"
-                      inputMode="email"
-                      autoComplete="username"
-                      placeholder="you@kabi.co.ke"
-                      value={form.email}
-                      onChange={update("email")}
-                      onBlur={blur("email")}
-                      aria-invalid={Boolean(visibleError("email"))}
-                      aria-describedby={visibleError("email") ? "email-error" : undefined}
-                    />
-                  </Field>
-
-                  <Field
-                    id="password"
-                    label="Password"
-                    error={visibleError("password")}
-                    icon={<LockIcon />}
-                    hint={capsLock && !visibleError("password") ? "Caps Lock is on" : ""}
-                    labelAction={
-                      <button
-                        type="button"
-                        className="login__link"
-                        onClick={() => setShowResetHint((v) => !v)}
-                        aria-expanded={showResetHint}
-                      >
-                        Forgot password?
-                      </button>
-                    }
-                    action={
-                      <button
-                        type="button"
-                        className="login__reveal"
-                        onClick={() => setShowPassword((v) => !v)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                        aria-pressed={showPassword}
-                      >
-                        {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                      </button>
-                    }
-                  >
-                    <input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      autoComplete="current-password"
-                      placeholder="Enter your password"
-                      value={form.password}
-                      onChange={update("password")}
-                      onBlur={blur("password")}
-                      onKeyUp={(e) => setCapsLock(e.getModifierState?.("CapsLock"))}
-                      aria-invalid={Boolean(visibleError("password"))}
-                      aria-describedby={visibleError("password") ? "password-error" : undefined}
-                    />
-                  </Field>
-
-                  {showResetHint && (
-                    <p className="login__note">
-                      Contact the Kabi platform team to reset a super admin password.
-                    </p>
-                  )}
-
-                  <button type="submit" className="login__submit" disabled={submitting}>
-                    <span className="login__submit-label">{submitting ? "Signing in…" : "Sign in"}</span>
-                    <span className="login__submit-icon" aria-hidden="true">
-                      {submitting ? <span className="login__spinner" /> : <ArrowIcon />}
-                    </span>
-                  </button>
-                </form>
-
-                <p className="login__secure">
-                  <ShieldIcon />
-                  Restricted to Kabi super admins
-                </p>
-            </>
+          <div className="login__brand enter" style={{ "--d": "0ms" }}>
+            <img className="login__logo" src="/images/warom-logo.png" alt="WAROM" />
           </div>
 
-          <footer className="login__footer enter" style={{ "--d": "160ms" }}>
-            © {new Date().getFullYear()} Kabi Connect · Super Admin Console
+          <div className="login__card enter" style={{ "--d": "90ms" }}>
+            <header className="login__header">
+              <span className="login__eyebrow">
+                <span className="login__eyebrow-dot" aria-hidden="true" />
+                {greeting()} · Operations
+              </span>
+              <h1 className="login__title">
+                Welcome <em>back</em>
+              </h1>
+              <p className="login__subtitle">
+                Sign in to steer WAROM — users, chatters, coins and care.
+              </p>
+            </header>
+
+            <form className="login__form" onSubmit={handleSubmit} noValidate>
+              <Field id="email" label="Email address" error={visibleError("email")} icon={<MailIcon />}>
+                <input
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  autoComplete="username"
+                  placeholder="waromadmin@gmail.com"
+                  value={form.email}
+                  onChange={update("email")}
+                  onBlur={blur("email")}
+                  aria-invalid={Boolean(visibleError("email"))}
+                  aria-describedby={visibleError("email") ? "email-error" : undefined}
+                />
+              </Field>
+
+              <Field
+                id="password"
+                label="Password"
+                error={visibleError("password")}
+                icon={<LockIcon />}
+                hint={capsLock && !visibleError("password") ? "Caps Lock is on" : ""}
+                labelAction={
+                  <button type="button" className="login__link" onClick={handleForgotPassword}>
+                    Forgot password?
+                  </button>
+                }
+                action={
+                  <button
+                    type="button"
+                    className="login__reveal"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                  >
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                }
+              >
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="Enter your password"
+                  value={form.password}
+                  onChange={update("password")}
+                  onBlur={blur("password")}
+                  onKeyUp={(e) => setCapsLock(e.getModifierState?.("CapsLock"))}
+                  aria-invalid={Boolean(visibleError("password"))}
+                  aria-describedby={visibleError("password") ? "password-error" : undefined}
+                />
+              </Field>
+
+              <button type="submit" className="login__submit" disabled={submitting}>
+                <span className="login__submit-label">{submitting ? "Signing in…" : "Sign in"}</span>
+                <span className="login__submit-icon" aria-hidden="true">
+                  {submitting ? <span className="login__spinner" /> : <ArrowIcon />}
+                </span>
+              </button>
+            </form>
+
+            <p className="login__secure">
+              <ShieldIcon />
+              Restricted to WAROM administrators
+            </p>
+          </div>
+
+          <footer className="login__footer enter" style={{ "--d": "170ms" }}>
+            © {new Date().getFullYear()} WAROM · Admin Console
           </footer>
         </div>
       </section>
@@ -255,27 +247,20 @@ function Showcase({ slides }) {
   }, [slides.length]);
 
   return (
-    <aside className="showcase" aria-roledescription="carousel" aria-label="Kabi highlights">
+    <aside className="showcase" aria-roledescription="carousel" aria-label="WAROM highlights">
       {slides.map((slide, index) => (
         <figure
           key={slide.title}
           className={`showcase__slide${index === active ? " is-active" : ""}`}
           aria-hidden={index !== active}
-          style={{ "--tint": slide.tint, background: slide.backdrop }}
+          style={{ "--tint": slide.tint }}
         >
-          {slide.image ? (
-            <img
-              className={`showcase__image${slide.blend ? " showcase__image--blend" : ""}`}
-              src={slide.image}
-              alt=""
-              style={{ objectPosition: slide.position }}
-            />
-          ) : (
-            <div className={`showcase__placeholder showcase__placeholder--${index % 3}`}>
-              <span className="showcase__orb showcase__orb--a" />
-              <span className="showcase__orb showcase__orb--b" />
-            </div>
-          )}
+          <img
+            className="showcase__image"
+            src={slide.image}
+            alt=""
+            style={{ objectPosition: slide.position }}
+          />
 
           <div className="showcase__widgets" aria-hidden="true">
             <Widget type={slide.widget} />
@@ -288,63 +273,72 @@ function Showcase({ slides }) {
           </figcaption>
         </figure>
       ))}
+
+      <div className="showcase__dots" role="tablist" aria-label="Slides">
+        {slides.map((slide, index) => (
+          <button
+            key={slide.eyebrow}
+            type="button"
+            role="tab"
+            aria-selected={index === active}
+            className={`showcase__dot${index === active ? " is-active" : ""}`}
+            onClick={() => setActive(index)}
+          >
+            <span className="sr-only">{slide.eyebrow}</span>
+          </button>
+        ))}
+      </div>
     </aside>
   );
 }
 
 function Widget({ type }) {
-  if (type === "delivery") {
+  if (type === "pulse") {
     return (
       <div className="wcard">
         <div className="wcard__head">
-          <span className="wcard__label">Order #KB-2041</span>
-          <span className="wpill wpill--ember">On the way</span>
+          <span className="wcard__label">Live pulse</span>
+          <span className="wpill wpill--live">Live</span>
         </div>
-        <div className="wrider">
-          <span className="wavatar" style={{ background: "#B22E0C" }}>JM</span>
-          <div>
-            <strong>James M.</strong>
-            <span>Rotejo rider · 2 × 13kg gas</span>
-          </div>
-          <span className="weta">
-            8<small>min</small>
-          </span>
+        <div className="wpulse">
+          {[
+            ["Users online", "12.4k"],
+            ["Active chats", "3,812"],
+            ["Streams", "48"],
+          ].map(([label, value]) => (
+            <div key={label} className="wpulse__row">
+              <span>{label}</span>
+              <strong>{value}</strong>
+            </div>
+          ))}
         </div>
-        <div className="wtrack">
-          <span className="wtrack__fill" />
-          <span className="wtrack__stop is-done" />
-          <span className="wtrack__stop is-done" />
-          <span className="wtrack__stop" />
-        </div>
-        <div className="wtrack__labels">
-          <span>Shop</span>
-          <span>Picked up</span>
-          <span>Door</span>
+        <div className="wbars wbars--soft">
+          {[42, 58, 51, 74, 63, 88, 96].map((h, i) => (
+            <span key={i} className="wbar" style={{ "--h": `${h}%`, "--i": i }} />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (type === "shops") {
+  if (type === "ledger") {
     return (
       <div className="wcard">
         <div className="wcard__head">
-          <span className="wcard__label">Aqua Springs Refill</span>
-          <span className="wpill wpill--good">Open</span>
+          <span className="wcard__label">Coin ledger</span>
+          <span className="wtrend">+8.2%</span>
         </div>
-        {[
-          ["20L refill", "KSh 150", true],
-          ["10L refill", "KSh 90", true],
-          ["New 20L bottle", "KSh 650", false],
-        ].map(([name, price, on]) => (
-          <div key={name} className="witem">
-            <span className="witem__name">{name}</span>
-            <span className="witem__price">{price}</span>
-            <span className={`wtoggle${on ? " is-on" : ""}`} />
-          </div>
-        ))}
+        <div className="wstat">184,920 coins</div>
+        <div className="witem">
+          <span className="witem__name">Pending payouts</span>
+          <span className="witem__price">12,480</span>
+        </div>
+        <div className="witem">
+          <span className="witem__name">Available today</span>
+          <span className="witem__price">6,210</span>
+        </div>
         <span className="wcard__meta">
-          <span className="wdot" /> 6 riders online nearby
+          <span className="wdot" /> Settlements on schedule
         </span>
       </div>
     );
@@ -353,21 +347,22 @@ function Widget({ type }) {
   return (
     <div className="wcard">
       <div className="wcard__head">
-        <span className="wcard__label">Today's sales</span>
-        <span className="wtrend">+12.4%</span>
+        <span className="wcard__label">Safety queue</span>
+        <span className="wpill wpill--warn">3 open</span>
       </div>
-      <div className="wstat">KSh 48,200</div>
-      <div className="wbars">
-        {[38, 52, 44, 66, 58, 82, 100].map((h, i) => (
-          <span key={i} className="wbar" style={{ "--h": `${h}%`, "--i": i }} />
-        ))}
-      </div>
-      <div className="wbars__labels">
-        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-          <span key={i}>{d}</span>
-        ))}
-      </div>
-      <span className="wcard__meta">Top dish · Double cheeseburger</span>
+      {[
+        ["Report #WR-118", "Harassment", "High"],
+        ["Chatter verify", "ID pending", "Med"],
+        ["Live flag", "Room #402", "Low"],
+      ].map(([title, meta, level]) => (
+        <div key={title} className="witem witem--stack">
+          <div>
+            <span className="witem__name">{title}</span>
+            <span className="witem__meta">{meta}</span>
+          </div>
+          <span className={`wlevel wlevel--${level.toLowerCase()}`}>{level}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -414,13 +409,6 @@ const EyeOffIcon = () => (
 const ArrowIcon = () => (
   <svg {...svgProps} strokeWidth={2.2}>
     <path d="M5 12h14M13 6l6 6-6 6" />
-  </svg>
-);
-
-const AlertIcon = () => (
-  <svg {...svgProps}>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 8v4.5M12 16h.01" />
   </svg>
 );
 

@@ -31,22 +31,46 @@ function UserBadges({ user, me }) {
   );
 }
 
+function detailPath(person) {
+  const isAdmin =
+    person?._kind === "admin" ||
+    ["superadmin", "moderator", "finance", "support"].includes(person?.role);
+  return isAdmin ? `/api/admin/admins/${person.id}` : `/api/admin/users/${person.id}`;
+}
+
+function normalizeDetail(person) {
+  if (!person) return person;
+  return {
+    ...person,
+    full_name: person.full_name || person.name || person.username || person.email || "Account",
+    role: person.role || person.account_type,
+    is_active:
+      typeof person.is_active === "boolean"
+        ? person.is_active
+        : person.status
+          ? person.status === "active"
+          : true,
+  };
+}
+
 export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit }) {
-  const [user, setUser] = useState(initialUser);
+  const [user, setUser] = useState(normalizeDetail(initialUser));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, copy] = useCopy();
 
   useEffect(() => {
     let cancelled = false;
-    api(`/api/users/${initialUser.id}`, { token })
-      .then((fresh) => !cancelled && setUser(fresh))
+    api(detailPath(initialUser), { token })
+      .then((fresh) => !cancelled && setUser(normalizeDetail({ ...initialUser, ...fresh })))
       .catch((err) => !cancelled && setError(err.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [initialUser.id, token]);
+    // Refresh when the selected account changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialUser.id, initialUser._kind, initialUser.role, token]);
 
   const rows = [
     { label: "Full name", value: user.full_name },
@@ -166,8 +190,16 @@ export function EditUserDialog({ user, token, me, onClose, onSaved }) {
     setSaving(true);
     setServerError("");
     try {
-      const updated = await api(`/api/users/${user.id}`, { token, method: "PUT", body: changes });
-      onSaved(updated);
+      const body = { ...changes };
+      if (body.full_name !== undefined) {
+        body.name = body.full_name;
+      }
+      const updated = await api(detailPath(user), {
+        token,
+        method: "PATCH",
+        body,
+      });
+      onSaved(normalizeDetail({ ...user, ...updated }));
       setSaving(false);
       close();
     } catch (error) {

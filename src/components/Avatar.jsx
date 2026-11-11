@@ -6,7 +6,7 @@ export default function Avatar({ user, size = "md" }) {
   const [failed, setFailed] = useState(false);
   const src = mediaUrl(user.profile_image);
   const initials =
-    (user.full_name || user.email || "?")
+    (user.name || user.full_name || user.email || "?")
       .split(/\s+/)
       .filter(Boolean)
       .slice(0, 2)

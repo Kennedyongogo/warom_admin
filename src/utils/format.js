@@ -28,10 +28,13 @@ export function timeAgo(value) {
 }
 
 export const ROLE_LABELS = {
+  user: "User",
+  chatter: "Chatter",
+  superadmin: "Superadmin",
+  moderator: "Moderator",
+  finance: "Finance",
+  support: "Support",
+  // legacy labels kept for older rows
   customer: "Customer",
-  rotejo_rider: "Rotejo rider",
-  shop_rider: "Shop rider",
-  shop_owner: "Shop owner",
-  staff: "Staff",
   super_admin: "Super admin",
 };

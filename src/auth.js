@@ -1,9 +1,8 @@
 const API_BASE = import.meta.env.VITE_API_BASE || "";
-const TOKEN_KEY = "kabi_superadmin_token";
-const USER_KEY = "kabi_superadmin_user";
+const TOKEN_KEY = "warom_admin_token";
+const USER_KEY = "warom_admin_user";
 
-// Matches `requireSuperAdmin` in delivery_api.
-export const SUPER_ADMIN_ROLES = ["super_admin"];
+export const SUPER_ADMIN_ROLES = ["superadmin", "super_admin", "admin"];
 
 export function loadSession() {
   const token = localStorage.getItem(TOKEN_KEY);

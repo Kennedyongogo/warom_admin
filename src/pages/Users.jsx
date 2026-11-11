@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams } from "react-router-dom";
 import { api } from "../auth.js";
 import Avatar from "../components/Avatar.jsx";
 import { dateFmt, numberFmt, timeAgo } from "../utils/format.js";
-import CreateShopOwnerDialog from "./CreateShopOwnerDialog.jsx";
+import CreateAdminDialog from "./CreateAdminDialog.jsx";
 import { EditUserDialog, EyeIcon, PencilIcon, ViewUserDialog } from "./UserDialogs.jsx";
 import "./pages.css";
 import "./Users.css";
@@ -12,57 +12,95 @@ const PAGE_SIZES = [10, 25, 50];
 
 const ROLE_TABS = [
   {
-    id: "customer",
-    label: "Customers",
-    noun: "customers",
-    statKey: "totalCustomers",
-    hint: "People who order gas, water and food on Kabi will appear here.",
+    id: "user",
+    label: "Users",
+    noun: "users",
+    kind: "app",
+    accountType: "user",
+    statKey: "users",
+    hint: "People who spend coins and connect on WAROM will appear here.",
     icon: <CustomerIcon />,
   },
   {
-    id: "rotejo_rider",
-    label: "Rotejo riders",
-    noun: "Rotejo riders",
-    statKey: "totalRotejoRiders",
-    hint: "Independent riders on the Rotejo network will appear here.",
-    icon: <RiderIcon />,
+    id: "chatter",
+    label: "Chatters",
+    noun: "chatters",
+    kind: "app",
+    accountType: "chatter",
+    statKey: "chatters",
+    hint: "Hosts and creators who earn on WAROM will appear here.",
+    icon: <ChatterIcon />,
   },
   {
-    id: "shop_rider",
-    label: "Shop riders",
-    noun: "shop riders",
-    statKey: "totalShopRiders",
-    hint: "Riders attached to a specific shop will appear here.",
-    icon: <BagIcon />,
+    id: "superadmin",
+    label: "Superadmins",
+    noun: "superadmins",
+    kind: "admin",
+    adminRole: "superadmin",
+    statKey: "superadmin",
+    hint: "Admins with full platform access will appear here.",
+    icon: <ShieldIcon />,
   },
   {
-    id: "shop_owner",
-    label: "Shop owners",
-    noun: "shop owners",
-    statKey: "totalShopOwners",
-    hint: "Vendors who run shops on Kabi will appear here.",
-    icon: <StoreIcon />,
-  },
-  {
-    id: "staff",
-    label: "Staff",
-    noun: "staff",
-    statKey: "totalStaff",
-    hint: "Shop staff helping owners manage orders will appear here.",
+    id: "moderator",
+    label: "Moderators",
+    noun: "moderators",
+    kind: "admin",
+    adminRole: "moderator",
+    statKey: "moderator",
+    hint: "Trust & safety reviewers will appear here.",
     icon: <BadgeIcon />,
   },
   {
-    id: "super_admin",
-    label: "Super admins",
-    noun: "super admins",
-    statKey: "totalSuperAdmins",
-    hint: "People with full access to the Kabi platform will appear here.",
-    icon: <ShieldIcon />,
+    id: "finance",
+    label: "Finance",
+    noun: "finance admins",
+    kind: "admin",
+    adminRole: "finance",
+    statKey: "finance",
+    hint: "Admins who handle coins, payouts and settlements will appear here.",
+    icon: <FinanceIcon />,
+  },
+  {
+    id: "support",
+    label: "Support",
+    noun: "support admins",
+    kind: "admin",
+    adminRole: "support",
+    statKey: "support",
+    hint: "Admins who handle inquiries and account help will appear here.",
+    icon: <SupportIcon />,
   },
 ];
 
-// Tabs that use the compact No / Name / Email / Actions table.
-const COMPACT_TABS = ["shop_owner", "super_admin"];
+// Admin roles use the compact No / Name / Email / Actions table.
+const COMPACT_TABS = ["superadmin", "moderator", "finance", "support"];
+
+function normalizePerson(row, kind) {
+  if (!row) return row;
+  if (kind === "admin") {
+    return {
+      ...row,
+      full_name: row.name || row.email || "Admin",
+      name: row.name,
+      is_active: row.is_active !== false,
+      last_login: row.last_login_at,
+      createdAt: row.created_at || row.createdAt,
+      profile_image: null,
+      _kind: "admin",
+    };
+  }
+  return {
+    ...row,
+    full_name: row.username || row.email || "User",
+    name: row.username,
+    is_active: row.status === "active",
+    last_login: row.last_active_at,
+    createdAt: row.created_at || row.createdAt,
+    profile_image: row.profile_picture || null,
+    _kind: "app",
+  };
+}
 
 export default function Users() {
   const { user: me, token, onUserUpdate } = useOutletContext();
@@ -94,6 +132,8 @@ export default function Users() {
   const [creating, setCreating] = useState(false);
   const [dialog, setDialog] = useState(null);
   const [toast, setToast] = useState(null);
+  const canCreateAdmins = me?.role === "superadmin";
+  const showCreateAdmin = canCreateAdmins && active.kind === "admin";
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -104,8 +144,8 @@ export default function Users() {
   const [stats, setStats] = useState(null);
   useEffect(() => {
     let cancelled = false;
-    api("/api/users/dashboard/stats", { token })
-      .then((data) => !cancelled && setStats(data.stats))
+    api("/api/admin/directory-stats", { token })
+      .then((data) => !cancelled && setStats(data))
       .catch(() => {});
     return () => {
       cancelled = true;
@@ -117,19 +157,29 @@ export default function Users() {
   useEffect(() => {
     let cancelled = false;
     setList((prev) => ({ ...prev, status: "loading" }));
-    const search = new URLSearchParams({
-      role: active.id,
-      page,
-      limit: pageSize,
-      sortBy: "createdAt",
-      sortOrder: "DESC",
-    });
-    if (query) search.set("search", query);
 
-    api(`/api/users?${search}`, { token, raw: true })
-      .then((res) => {
+    const search = new URLSearchParams({
+      page: String(page),
+      limit: String(pageSize),
+    });
+    if (query) search.set("q", query);
+
+    const path =
+      active.kind === "admin"
+        ? `/api/admin/admins?${search}&role=${encodeURIComponent(active.adminRole)}`
+        : `/api/admin/users?${search}&account_type=${encodeURIComponent(active.accountType)}`;
+
+    api(path, { token })
+      .then((data) => {
         if (cancelled) return;
-        setList({ status: "ready", role: active.id, rows: res.data, pagination: res.pagination, error: "" });
+        const rows = (data.rows || []).map((row) => normalizePerson(row, active.kind));
+        setList({
+          status: "ready",
+          role: active.id,
+          rows,
+          pagination: data.pagination || null,
+          error: "",
+        });
       })
       .catch((error) => {
         if (cancelled) return;
@@ -138,16 +188,23 @@ export default function Users() {
     return () => {
       cancelled = true;
     };
-  }, [token, active.id, page, pageSize, query, reloadKey]);
+  }, [token, active.id, active.kind, active.adminRole, active.accountType, page, pageSize, query, reloadKey]);
 
   const onUserSaved = (updated) => {
+    const normalized = normalizePerson(
+      { ...updated, name: updated.name || updated.full_name },
+      active.kind
+    );
     if (updated.id === me.id) onUserUpdate(updated);
     setList((prev) => ({
       ...prev,
-      rows: prev.rows.map((row) => (row.id === updated.id ? { ...row, ...updated } : row)),
+      rows: prev.rows.map((row) => (row.id === updated.id ? { ...row, ...normalized } : row)),
     }));
     setReloadKey((k) => k + 1);
-    setToast({ id: Date.now(), message: `${updated.full_name.split(" ")[0]}'s details were saved.` });
+    setToast({
+      id: Date.now(),
+      message: `${(normalized.full_name || "Account").split(" ")[0]}'s details were saved.`,
+    });
   };
 
   // A stale link or a shrinking list can leave us past the last page.
@@ -183,18 +240,34 @@ export default function Users() {
   return (
     <section className="page users">
       <header className="users__head">
-        <h1 className="page__title">Users</h1>
-        {active.id === "shop_owner" && (
+        <div>
+          <h1 className="page__title">Users</h1>
+          <p className="page__subtitle">App accounts and admin roles across WAROM.</p>
+        </div>
+        {showCreateAdmin && (
           <button type="button" className="users__create" onClick={() => setCreating(true)}>
             <PlusIcon />
-            <span>New shop owner</span>
+            <span>
+              {active.id === "superadmin"
+                ? "Create Superadmin"
+                : active.id === "moderator"
+                  ? "Create Moderator"
+                  : active.id === "finance"
+                    ? "Create Finance"
+                    : active.id === "support"
+                      ? "Create Support"
+                      : "Create admin"}
+            </span>
           </button>
         )}
       </header>
 
       {creating && (
-        <CreateShopOwnerDialog
+        <CreateAdminDialog
+          key={`create-${active.adminRole || active.id}`}
           token={token}
+          defaultRole={active.adminRole || "moderator"}
+          lockRole
           onClose={() => setCreating(false)}
           onCreated={() => {
             updateParams({ page: null, q: null });
@@ -570,7 +643,11 @@ function UserTable({ rows, me }) {
               </td>
               <td data-label="Status">
                 <span className={`status ${person.is_active ? "status--on" : "status--off"}`}>
-                  {person.is_active ? "Active" : "Inactive"}
+                  {person.status
+                    ? person.status.charAt(0).toUpperCase() + person.status.slice(1)
+                    : person.is_active
+                      ? "Active"
+                      : "Inactive"}
                 </span>
               </td>
               <td data-label="Last active" title={person.last_login ? new Date(person.last_login).toLocaleString() : undefined}>
@@ -815,30 +892,11 @@ function CustomerIcon() {
   );
 }
 
-function RiderIcon() {
+function ChatterIcon() {
   return (
     <svg {...svgProps}>
-      <circle cx="6" cy="17" r="3" />
-      <circle cx="18" cy="17" r="3" />
-      <path d="M6 17h5l3-6h3l1 6M9 8h3l2 3" />
-    </svg>
-  );
-}
-
-function BagIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M5 8h14l-1 12H6L5 8Z" />
-      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
-    </svg>
-  );
-}
-
-function StoreIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M4 9.5 5.5 4h13L20 9.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0Z" />
-      <path d="M5 12v8h14v-8M10 20v-5h4v5" />
+      <path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+      <path d="M8.5 11h.01M12 11h.01M15.5 11h.01" />
     </svg>
   );
 }
@@ -850,6 +908,25 @@ function BadgeIcon() {
       <path d="M9 6V4h6v2" />
       <circle cx="12" cy="12" r="2" />
       <path d="M8.5 17a3.5 3.5 0 0 1 7 0" />
+    </svg>
+  );
+}
+
+function FinanceIcon() {
+  return (
+    <svg {...svgProps}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 7v10M9.5 9.5c.6-1 1.7-1.5 2.5-1.5 1.4 0 2.5.8 2.5 2s-1.1 2-2.5 2h-1c-1.4 0-2.5.8-2.5 2s1.1 2 2.5 2c.8 0 1.9-.5 2.5-1.5" />
+    </svg>
+  );
+}
+
+function SupportIcon() {
+  return (
+    <svg {...svgProps}>
+      <path d="M5 11a7 7 0 0 1 14 0v3a3 3 0 0 1-3 3h-1" />
+      <path d="M5 14v1a3 3 0 0 0 3 3h1" />
+      <path d="M12 21h.01" />
     </svg>
   );
 }

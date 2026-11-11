@@ -6,9 +6,8 @@ import "./AppShell.css";
 
 const NAV_ITEMS = [
   { to: "/", label: "Home", icon: <HomeIcon />, end: true },
-  { to: "/shops", label: "Shops", icon: <ShopIcon /> },
   { to: "/users", label: "Users", icon: <UsersIcon /> },
-  { to: "/riders", label: "Riders", icon: <RiderIcon /> },
+  { to: "/inquiries", label: "Inquiries", icon: <InquiryIcon /> },
   { to: "/settings", label: "Settings", icon: <SettingsIcon /> },
 ];
 
@@ -18,7 +17,7 @@ export default function AppShell({ session, onSignOut, onUserUpdate }) {
   // Refresh the stored profile (and catch revoked or expired sessions) on every visit.
   useEffect(() => {
     let cancelled = false;
-    api(`/api/users/${user.id}`, { token })
+    api("/api/admin/me", { token })
       .then((fresh) => {
         if (cancelled) return;
         if (!SUPER_ADMIN_ROLES.includes(fresh.role)) onSignOut();
@@ -51,8 +50,8 @@ export default function AppShell({ session, onSignOut, onUserUpdate }) {
   return (
     <div className={`shell${menuOpen ? " is-menu-open" : ""}`}>
       <header className="nav">
-        <Link to="/" className="nav__brand" aria-label="Kabi super admin home" onClick={closeMenu}>
-          <img src="/images/kabi-logo.png" alt="Kabi" />
+        <Link to="/" className="nav__brand" aria-label="WAROM Admin home" onClick={closeMenu}>
+          <img src="/images/warom-logo.png" alt="WAROM" />
         </Link>
 
         <nav className="nav__links" aria-label="Main">
@@ -113,7 +112,7 @@ export default function AppShell({ session, onSignOut, onUserUpdate }) {
       <div className="shell__scrim" onClick={closeMenu} aria-hidden="true" />
 
       <main className="shell__main">
-        <Outlet context={{ user, token, onUserUpdate }} />
+        <Outlet context={{ user, token, onUserUpdate, onSignOut }} />
       </main>
     </div>
   );
@@ -158,7 +157,7 @@ function ProfileMenu({ user, onSignOut, onOpen }) {
           <div className="profile__head">
             <Avatar user={user} size="lg" />
             <div className="profile__who">
-              <strong>{user.full_name}</strong>
+              <strong>{user.name || user.full_name || "Admin"}</strong>
               <span>{user.email}</span>
             </div>
           </div>
@@ -196,15 +195,6 @@ function HomeIcon() {
   );
 }
 
-function ShopIcon() {
-  return (
-    <svg {...svgProps}>
-      <path d="M4 9.5 5.5 4h13L20 9.5a2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0 2.5 2.5 0 0 1-5 0Z" />
-      <path d="M5 12v8h14v-8M10 20v-5h4v5" />
-    </svg>
-  );
-}
-
 function UsersIcon() {
   return (
     <svg {...svgProps}>
@@ -215,12 +205,11 @@ function UsersIcon() {
   );
 }
 
-function RiderIcon() {
+function InquiryIcon() {
   return (
     <svg {...svgProps}>
-      <circle cx="6" cy="17" r="3" />
-      <circle cx="18" cy="17" r="3" />
-      <path d="M6 17h5l3-6h3l1 6M9 8h3l2 3" />
+      <path d="M5 6h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+      <path d="M8.5 11h.01M12 11h.01M15.5 11h.01" />
     </svg>
   );
 }
