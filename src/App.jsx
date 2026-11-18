@@ -7,6 +7,14 @@ import Home from "./pages/Home.jsx";
 import Users from "./pages/Users.jsx";
 import Inquiries from "./pages/Inquiries.jsx";
 import Settings from "./pages/Settings.jsx";
+import { CoinsPage, VipPage, GiftsPage } from "./pages/CataloguePages.jsx";
+import Earnings from "./pages/Earnings.jsx";
+import Payments from "./pages/Payments.jsx";
+import Withdrawals from "./pages/Withdrawals.jsx";
+import Reports from "./pages/Reports.jsx";
+import LiveStreams from "./pages/LiveStreams.jsx";
+import Notifications from "./pages/Notifications.jsx";
+import Policies from "./pages/Policies.jsx";
 
 export default function App() {
   const [session, setSession] = useState(loadSession);
@@ -43,6 +51,16 @@ export default function App() {
             <Route index element={<Home />} />
             <Route path="users" element={<Users />} />
             <Route path="inquiries" element={<Inquiries />} />
+            <Route path="coins" element={<CoinsPage />} />
+            <Route path="vip" element={<VipPage />} />
+            <Route path="gifts" element={<GiftsPage />} />
+            <Route path="earnings" element={<Earnings />} />
+            <Route path="payments" element={<Payments />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="live-streams" element={<LiveStreams />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="policies" element={<Policies />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         ) : (
