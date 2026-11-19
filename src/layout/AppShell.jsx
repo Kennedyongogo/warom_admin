@@ -16,9 +16,14 @@ const MORE_NAV = [
   { to: "/vip", label: "VIP plans", group: "Money" },
   { to: "/gifts", label: "Gifts", group: "Money" },
   { to: "/earnings", label: "Earnings", group: "Money" },
+  { to: "/earning-holds", label: "Earnings holds", group: "Money" },
+  { to: "/ledger", label: "Ledger", group: "Money" },
   { to: "/payments", label: "Payments", group: "Money" },
   { to: "/withdrawals", label: "Withdrawals", group: "Money" },
+  { to: "/hosts", label: "Hosts", group: "Ops" },
+  { to: "/verifications", label: "Verifications", group: "Safety" },
   { to: "/reports", label: "Reports", group: "Safety" },
+  { to: "/content-moderation", label: "Content mod", group: "Safety" },
   { to: "/live-streams", label: "Live streams", group: "Safety" },
   { to: "/notifications", label: "Notifications", group: "Reach" },
   { to: "/policies", label: "Policies", group: "Reach" },
@@ -32,6 +37,13 @@ const MOBILE_NAV_GROUPS = [
   {
     label: "Money",
     items: MORE_NAV.filter((item) => item.group === "Money").map((item) => ({
+      ...item,
+      icon: <MoreItemIcon />,
+    })),
+  },
+  {
+    label: "Ops",
+    items: MORE_NAV.filter((item) => item.group === "Ops").map((item) => ({
       ...item,
       icon: <MoreItemIcon />,
     })),

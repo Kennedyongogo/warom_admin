@@ -15,6 +15,11 @@ import Reports from "./pages/Reports.jsx";
 import LiveStreams from "./pages/LiveStreams.jsx";
 import Notifications from "./pages/Notifications.jsx";
 import Policies from "./pages/Policies.jsx";
+import Verifications from "./pages/Verifications.jsx";
+import Ledger from "./pages/Ledger.jsx";
+import Hosts from "./pages/Hosts.jsx";
+import ContentModeration from "./pages/ContentModeration.jsx";
+import EarningsHolds from "./pages/EarningsHolds.jsx";
 
 export default function App() {
   const [session, setSession] = useState(loadSession);
@@ -58,7 +63,12 @@ export default function App() {
             <Route path="payments" element={<Payments />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="verifications" element={<Verifications />} />
+            <Route path="content-moderation" element={<ContentModeration />} />
             <Route path="live-streams" element={<LiveStreams />} />
+            <Route path="hosts" element={<Hosts />} />
+            <Route path="ledger" element={<Ledger />} />
+            <Route path="earning-holds" element={<EarningsHolds />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="policies" element={<Policies />} />
             <Route path="settings" element={<Settings />} />

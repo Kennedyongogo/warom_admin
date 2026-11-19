@@ -264,6 +264,15 @@
   .ud-details__value {
     text-align: left;
   }
+
+  .ud .modal__actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .ud .modal__actions .modal__btn {
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

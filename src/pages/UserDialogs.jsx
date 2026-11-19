@@ -3,6 +3,7 @@ import { api } from "../auth.js";
 import Avatar from "../components/Avatar.jsx";
 import Modal, { Field } from "../components/Modal.jsx";
 import { ROLE_LABELS } from "../utils/format.js";
+import { showConfirm, showError, showSuccess } from "../utils/swal.js";
 import "./UserDialogs.css";
 
 function useCopy() {
@@ -20,12 +21,16 @@ function useCopy() {
 }
 
 function UserBadges({ user, me }) {
+  const statusLabel = user.status
+    ? user.status.charAt(0).toUpperCase() + user.status.slice(1)
+    : user.is_active
+      ? "Active"
+      : "Inactive";
+  const on = user.status ? user.status === "active" : user.is_active;
   return (
     <div className="ud-badges">
       <span className="ud-badge ud-badge--role">{ROLE_LABELS[user.role] ?? user.role}</span>
-      <span className={`ud-badge ${user.is_active ? "ud-badge--on" : "ud-badge--off"}`}>
-        {user.is_active ? "Active" : "Inactive"}
-      </span>
+      <span className={`ud-badge ${on ? "ud-badge--on" : "ud-badge--off"}`}>{statusLabel}</span>
       {user.id === me.id && <span className="ud-badge ud-badge--you">You</span>}
     </div>
   );
@@ -53,11 +58,13 @@ function normalizeDetail(person) {
   };
 }
 
-export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit }) {
+export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit, onLifecycle }) {
   const [user, setUser] = useState(normalizeDetail(initialUser));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [copied, copy] = useCopy();
+  const isAppUser = (user._kind || initialUser._kind) === "app";
 
   useEffect(() => {
     let cancelled = false;
@@ -72,6 +79,12 @@ export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialUser.id, initialUser._kind, initialUser.role, token]);
 
+  const statusLabel = user.status
+    ? user.status.charAt(0).toUpperCase() + user.status.slice(1)
+    : user.is_active
+      ? "Active"
+      : "Inactive";
+
   const rows = [
     { label: "Full name", value: user.full_name },
     {
@@ -85,11 +98,49 @@ export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit }
       copy: user.phone || null,
     },
     { label: "Role", value: ROLE_LABELS[user.role] ?? user.role },
-    { label: "Status", value: user.is_active ? "Active" : "Inactive" },
+    { label: "Status", value: statusLabel },
+    ...(isAppUser
+      ? [
+          { label: "Account ID", value: user.id, copy: user.id },
+          {
+            label: "Verified",
+            value: user.is_verified ? "Yes" : user.verification_status || "No",
+          },
+        ]
+      : []),
   ];
 
+  const runLifecycle = async (action) => {
+    const labels = {
+      suspend: ["Suspend account?", "They will be blocked from signing in."],
+      restore: ["Restore account?", "They will be able to sign in again."],
+      terminate: ["Terminate account?", "This permanently marks the account as terminated."],
+    };
+    const [title, text] = labels[action];
+    const ok = await showConfirm(title, text, {
+      confirmText: action.charAt(0).toUpperCase() + action.slice(1),
+    });
+    if (!ok) return;
+    setBusy(true);
+    try {
+      const updated = await api(`/api/admin/users/${user.id}/${action}`, {
+        token,
+        method: "POST",
+        body: {},
+      });
+      const next = normalizeDetail({ ...user, ...updated, _kind: "app" });
+      setUser(next);
+      onLifecycle?.(next);
+      await showSuccess("Account updated", `Marked as ${next.status || action}.`);
+    } catch (err) {
+      await showError("Couldn't update", err.message || "Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <Modal labelledBy="view-user-title" onClose={onClose}>
+    <Modal labelledBy="view-user-title" onClose={onClose} busy={busy}>
       <div className="ud">
         <header className="ud-hero">
           <Avatar user={user} size="xl" />
@@ -130,8 +181,23 @@ export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit }
           ))}
         </dl>
 
-        <div className="modal__actions">
-          <button type="button" className="modal__btn modal__btn--primary" onClick={() => onEdit(user)}>
+        <div className="modal__actions" style={{ flexWrap: "wrap" }}>
+          {isAppUser && user.status !== "suspended" && user.status !== "terminated" && (
+            <button type="button" className="modal__btn modal__btn--ghost" disabled={busy} onClick={() => runLifecycle("suspend")}>
+              Suspend
+            </button>
+          )}
+          {isAppUser && (user.status === "suspended" || user.status === "terminated") && (
+            <button type="button" className="modal__btn modal__btn--ghost" disabled={busy} onClick={() => runLifecycle("restore")}>
+              Restore
+            </button>
+          )}
+          {isAppUser && user.status !== "terminated" && (
+            <button type="button" className="modal__btn modal__btn--ghost" disabled={busy} onClick={() => runLifecycle("terminate")}>
+              Terminate
+            </button>
+          )}
+          <button type="button" className="modal__btn modal__btn--primary" onClick={() => onEdit(user)} disabled={busy}>
             <PencilIcon /> Edit details
           </button>
         </div>

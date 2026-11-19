@@ -20,9 +20,17 @@ const TYPES = [
   "report",
 ];
 
+const AUDIENCES = [
+  { id: "user", label: "Single user" },
+  { id: "users", label: "All users" },
+  { id: "chatters", label: "All chatters" },
+  { id: "all", label: "Everyone" },
+];
+
 export default function Notifications() {
   const { token } = useOutletContext();
   const [form, setForm] = useState({
+    audience: "user",
     user_id: "",
     title: "",
     body: "",
@@ -32,17 +40,22 @@ export default function Notifications() {
 
   const onSubmit = async (event) => {
     event.preventDefault();
-    if (!form.user_id.trim() || !form.title.trim()) {
-      await showError("Missing fields", "User ID and title are required.");
+    if (!form.title.trim()) {
+      await showError("Missing fields", "Title is required.");
+      return;
+    }
+    if (form.audience === "user" && !form.user_id.trim()) {
+      await showError("Missing fields", "User ID is required for a single-user send.");
       return;
     }
     setSaving(true);
     try {
-      await api("/api/admin/notifications/broadcast", {
+      const result = await api("/api/admin/notifications/broadcast", {
         token,
         method: "POST",
         body: {
-          user_id: form.user_id.trim(),
+          audience: form.audience,
+          user_id: form.audience === "user" ? form.user_id.trim() : undefined,
           title: form.title.trim(),
           body: form.body.trim() || null,
           type: form.type,
@@ -50,7 +63,10 @@ export default function Notifications() {
       });
       setSaving(false);
       setForm((prev) => ({ ...prev, title: "", body: "" }));
-      await showSuccess("Notification sent", "The user will see it in-app.");
+      await showSuccess(
+        "Notification sent",
+        `Delivered to ${result?.sent ?? 1} recipient(s).`
+      );
     } catch (err) {
       setSaving(false);
       await showError("Couldn't send", err.message || "Please try again.");
@@ -61,18 +77,32 @@ export default function Notifications() {
     <section className="page">
       <header className="page__header">
         <h1 className="page__title">Notifications</h1>
-        <p className="page__subtitle">Send a system notification to a specific user or chatter.</p>
+        <p className="page__subtitle">Broadcast system notices to one user, all users, chatters, or everyone.</p>
       </header>
 
-      <div className="ops-card" style={{ padding: "1.1rem 1.15rem 1.25rem", maxWidth: 720 }}>
+      <div className="ops-card ops-card--form ops-card--form-wide">
         <form className="ops-form" onSubmit={onSubmit}>
-          <Field id="notify-user" label="User ID" hint="UUID of the app user or chatter">
-            <input
-              value={form.user_id}
-              onChange={(e) => setForm((prev) => ({ ...prev, user_id: e.target.value }))}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            />
+          <Field id="notify-audience" label="Audience">
+            <select
+              value={form.audience}
+              onChange={(e) => setForm((prev) => ({ ...prev, audience: e.target.value }))}
+            >
+              {AUDIENCES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
           </Field>
+          {form.audience === "user" && (
+            <Field id="notify-user" label="User ID" hint="UUID of the app user or chatter">
+              <input
+                value={form.user_id}
+                onChange={(e) => setForm((prev) => ({ ...prev, user_id: e.target.value }))}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              />
+            </Field>
+          )}
           <div className="ops-form__row">
             <Field id="notify-type" label="Type">
               <select value={form.type} onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}>
@@ -110,8 +140,7 @@ export default function Notifications() {
             />
           </label>
           <p className="ops-note">
-            Backend requires a target `user_id`. Broad fan-out can be added later when the API supports audience
-            filters.
+            Audience broadcasts are capped at 5,000 active accounts per send.
           </p>
           <div>
             <button type="submit" className="ops-btn" disabled={saving}>

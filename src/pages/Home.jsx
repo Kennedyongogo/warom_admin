@@ -106,6 +106,12 @@ export default function Home() {
             <Link className="ops-link" to="/earnings">
               Earnings split <span>Chatter %</span>
             </Link>
+            <Link className="ops-link" to="/earning-holds">
+              Earnings holds <span>Pending → available</span>
+            </Link>
+            <Link className="ops-link" to="/ledger">
+              Ledger <span>Journal & adjust</span>
+            </Link>
             <Link className="ops-link" to="/payments">
               Payments <span>History</span>
             </Link>
@@ -117,16 +123,25 @@ export default function Home() {
 
         <section className="ops-panel">
           <h2>Safety & reach</h2>
-          <p>Moderate reports, watch live rooms, and message members.</p>
+          <p>Moderate reports, KYC, live rooms, hosts, and broadcasts.</p>
           <div className="ops-links">
+            <Link className="ops-link" to="/verifications">
+              Verifications <span>KYC queue</span>
+            </Link>
+            <Link className="ops-link" to="/content-moderation">
+              Content mod <span>Messages & media</span>
+            </Link>
             <Link className="ops-link" to="/reports">
               Reports <span>Review queue</span>
             </Link>
             <Link className="ops-link" to="/live-streams">
-              Live streams <span>Monitor</span>
+              Live streams <span>End / ban</span>
+            </Link>
+            <Link className="ops-link" to="/hosts">
+              Hosts <span>Earnings & activity</span>
             </Link>
             <Link className="ops-link" to="/notifications">
-              Notifications <span>Send</span>
+              Notifications <span>Broadcast</span>
             </Link>
             <Link className="ops-link" to="/inquiries">
               Inquiries <span>Public site</span>
@@ -135,7 +150,7 @@ export default function Home() {
               Policies <span>Legal pages</span>
             </Link>
             <Link className="ops-link" to="/users">
-              Users & chatters <span>Directory</span>
+              Users & chatters <span>Suspend / restore</span>
             </Link>
           </div>
         </section>

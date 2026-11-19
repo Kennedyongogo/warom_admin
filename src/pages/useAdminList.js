@@ -34,8 +34,15 @@ export function useAdminList(path, token, { enabled = true } = {}) {
 export function badgeTone(status = "") {
   const value = String(status).toLowerCase();
   if (value === "live") return "live";
-  if (["success", "paid", "resolved", "active", "published"].includes(value)) return "good";
-  if (["pending", "open", "reviewing", "processing", "scheduled", "new"].includes(value)) return "warn";
-  if (["failed", "rejected", "banned", "dismissed", "refunded", "ended"].includes(value)) return "muted";
+  if (["success", "paid", "resolved", "active", "published", "approved", "released", "verified"].includes(value))
+    return "good";
+  if (["pending", "open", "reviewing", "processing", "scheduled", "new", "suspended"].includes(value))
+    return "warn";
+  if (
+    ["failed", "rejected", "banned", "dismissed", "refunded", "ended", "terminated", "removed", "reversed"].includes(
+      value
+    )
+  )
+    return "muted";
   return "";
 }

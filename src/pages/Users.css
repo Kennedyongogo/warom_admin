@@ -973,6 +973,48 @@
     align-items: flex-start;
   }
 
+  /* App users directory: actions become a full-width footer like inquiries. */
+  .utable:not(.utable--compact) td.utable__actions {
+    grid-column: 1 / -1;
+    width: auto;
+    padding-top: 8px;
+    border-top: 1px solid rgba(228, 220, 208, 0.7);
+  }
+
+  .utable:not(.utable--compact) td.utable__actions::before {
+    display: none;
+  }
+
+  .utable:not(.utable--compact) td.utable__actions .row-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .utable:not(.utable--compact) td.utable__actions .row-action {
+    display: inline-flex;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    height: auto;
+    min-height: 44px;
+    padding: 0.7rem 0.9rem;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .utable:not(.utable--compact) td.utable__actions .row-action__label {
+    display: inline;
+  }
+
+  .utable:not(.utable--compact) .utable__skeleton td.utable__actions .skeleton--action {
+    width: 100%;
+    height: 44px;
+    border-radius: 12px;
+  }
+
   /* Compact rows become standalone cards: header, email panel, action footer. */
   .utable--compact tbody {
     display: grid;

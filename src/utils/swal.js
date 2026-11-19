@@ -61,6 +61,20 @@ export function showInfo(title, text = "") {
   });
 }
 
+export async function showConfirm(title, text = "", options = {}) {
+  const result = await Swal.fire({
+    ...base,
+    icon: "warning",
+    title,
+    text,
+    showCancelButton: true,
+    confirmButtonText: options.confirmText || "Confirm",
+    cancelButtonText: options.cancelText || "Cancel",
+    ...options,
+  });
+  return result.isConfirmed;
+}
+
 /** Success toast then a countdown that signs the admin out. */
 export async function showSuccessThenLogout({
   title,

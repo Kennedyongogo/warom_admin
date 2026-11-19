@@ -346,7 +346,11 @@ export default function Users() {
             onEdit={(person) => setDialog({ type: "edit", user: person })}
           />
         ) : (
-          <UserTable rows={list.rows} me={me} />
+          <UserTable
+            rows={list.rows}
+            me={me}
+            onView={(person) => setDialog({ type: "view", user: person })}
+          />
         )}
 
         {list.pagination && list.pagination.total > 0 && list.status !== "error" && (
@@ -366,6 +370,14 @@ export default function Users() {
           me={me}
           onClose={() => setDialog(null)}
           onEdit={(person) => setDialog({ type: "edit", user: person })}
+          onLifecycle={(updated) => {
+            const normalized = normalizePerson(updated, "app");
+            setList((prev) => ({
+              ...prev,
+              rows: prev.rows.map((row) => (row.id === updated.id ? { ...row, ...normalized } : row)),
+            }));
+            setReloadKey((k) => k + 1);
+          }}
         />
       )}
       {dialog?.type === "edit" && (
@@ -610,7 +622,7 @@ export function SearchBox({ value, onSearch, placeholder }) {
   );
 }
 
-function UserTable({ rows, me }) {
+function UserTable({ rows, me, onView }) {
   const items = rows ?? Array.from({ length: 5 }, (_, index) => ({ id: `skeleton-${index}` }));
 
   return (
@@ -622,6 +634,7 @@ function UserTable({ rows, me }) {
           <th scope="col">Status</th>
           <th scope="col">Last active</th>
           <th scope="col">Joined</th>
+          <th scope="col" className="utable__actions">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -654,6 +667,20 @@ function UserTable({ rows, me }) {
                 {timeAgo(person.last_login)}
               </td>
               <td data-label="Joined">{person.createdAt ? dateFmt.format(new Date(person.createdAt)) : "—"}</td>
+              <td className="utable__actions" data-label="Actions">
+                <div className="row-actions">
+                  <button
+                    type="button"
+                    className="row-action"
+                    onClick={() => onView?.(person)}
+                    aria-label={`View ${person.full_name}'s details`}
+                    title="View details"
+                  >
+                    <EyeIcon />
+                    <span className="row-action__label" aria-hidden="true">View</span>
+                  </button>
+                </div>
+              </td>
             </tr>
           ) : (
             <tr key={person.id} className="utable__skeleton" aria-hidden="true">
@@ -668,6 +695,9 @@ function UserTable({ rows, me }) {
               <td><span className="skeleton skeleton--pill" /></td>
               <td><span className="skeleton skeleton--line" /></td>
               <td><span className="skeleton skeleton--line" /></td>
+              <td className="utable__actions">
+                <span className="skeleton skeleton--action" />
+              </td>
             </tr>
           )
         )}
