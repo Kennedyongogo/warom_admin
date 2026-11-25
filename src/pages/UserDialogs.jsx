@@ -117,25 +117,29 @@ export function ViewUserDialog({ user: initialUser, token, me, onClose, onEdit, 
       terminate: ["Terminate account?", "This permanently marks the account as terminated."],
     };
     const [title, text] = labels[action];
+    const userId = user.id;
+    const snapshot = { ...user };
+
+    // Close the account dialog first — native <dialog> top-layer hides SweetAlert behind it.
+    onClose?.();
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     const ok = await showConfirm(title, text, {
       confirmText: action.charAt(0).toUpperCase() + action.slice(1),
     });
     if (!ok) return;
-    setBusy(true);
+
     try {
-      const updated = await api(`/api/admin/users/${user.id}/${action}`, {
+      const updated = await api(`/api/admin/users/${userId}/${action}`, {
         token,
         method: "POST",
         body: {},
       });
-      const next = normalizeDetail({ ...user, ...updated, _kind: "app" });
-      setUser(next);
+      const next = normalizeDetail({ ...snapshot, ...updated, _kind: "app" });
       onLifecycle?.(next);
       await showSuccess("Account updated", `Marked as ${next.status || action}.`);
     } catch (err) {
       await showError("Couldn't update", err.message || "Please try again.");
-    } finally {
-      setBusy(false);
     }
   };
 

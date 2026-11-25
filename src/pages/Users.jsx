@@ -97,7 +97,12 @@ function normalizePerson(row, kind) {
     is_active: row.status === "active",
     last_login: row.last_active_at,
     createdAt: row.created_at || row.createdAt,
-    profile_image: row.profile_picture || null,
+    profile_image:
+      row.profile_picture ||
+      row.profile_image ||
+      (Array.isArray(row.photos) && row.photos[0]) ||
+      (Array.isArray(row.cover_photos) && row.cover_photos[0]) ||
+      null,
     _kind: "app",
   };
 }

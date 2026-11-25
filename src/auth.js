@@ -69,6 +69,8 @@ export const isAuthError = (error) => [400, 401, 403].includes(error?.status);
 
 export function mediaUrl(path) {
   if (!path) return "";
-  if (/^https?:\/\//.test(path) || path.startsWith("/")) return path;
+  if (/^https?:\/\//.test(path)) return path;
+  // Relative API paths (/uploads/...) must go through the API host / Vite proxy.
+  if (path.startsWith("/")) return `${API_BASE}${path}`;
   return `${API_BASE}/${path}`;
 }

@@ -1,5 +1,7 @@
 .warom-swal {
   font-family: "Figtree", "Manrope", system-ui, sans-serif;
+  /* Stay above app chrome; still close modals before opening Swal (dialog top-layer). */
+  z-index: 100000 !important;
 }
 
 .warom-swal__popup {
